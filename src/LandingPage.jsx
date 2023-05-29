@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Avatar, { genConfig } from 'react-nice-avatar'
+import ThemeModeSelector from "./ThemeModeSelector"
 import { useAuth } from './UserAuthContext'
 import { Button, Typography, TextField, Container } from '@mui/material';
 import Box from '@mui/material/Box';
@@ -7,6 +8,7 @@ import uuid from 'react-uuid';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useLocation, useNavigate } from 'react-router-dom';
+
 
 export default function LandingPage() {
     const [avatarSeed, setAvatarSeed] = useState("hello");
@@ -181,6 +183,7 @@ export default function LandingPage() {
                     </Box>
                 </>
             }
+            <ThemeModeSelector></ThemeModeSelector>
         </Container>
     )
 }
