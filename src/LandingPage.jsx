@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import Avatar, { genConfig } from 'react-nice-avatar'
-import ThemeModeSelector from "./ThemeModeSelector"
 import { useAuth } from './UserAuthContext'
-import { Button, Typography, TextField, Container } from '@mui/material';
-import Box from '@mui/material/Box';
+import { Button, Typography, TextField, Container, Box, Paper, Divider } from '@mui/material';
 import uuid from 'react-uuid';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { addSession } from './services/addSession';
+import SessionTable from './SessionTable';
+import { fetchSessionSnapshot } from './services/fetchSessionSnapshot';
+import { fetchSessionsSnapshot } from './services/fetchSessionsSnapshot';
 
 
 export default function LandingPage() {
@@ -21,6 +21,8 @@ export default function LandingPage() {
 
     const [creationAttempted, setCreationAttempted] = useState(false);
     const [joinAttempted, setJoinAttempted] = useState(false);
+
+    const [sessions, setSessions] = useState(null);
 
     let navigate = useNavigate();
     let location = useLocation();
@@ -38,11 +40,11 @@ export default function LandingPage() {
 
         if (user != null) {
             setAvatarSeed(user.avatarSeed);
-            console.log(user.username)
             setName(user.username);
+
+
         }
     }, [user])
-
 
 
     useEffect(() => {
@@ -50,6 +52,7 @@ export default function LandingPage() {
 
         console.log("avatar seed cahgne")
     }, [avatarSeed])
+
 
     const randomAvatar = () => {
         console.log("random")
@@ -90,10 +93,9 @@ export default function LandingPage() {
 
     const createSession = () => {
         setCreationAttempted(true);
-        addDoc(collection(db, "sessions"), {
-            creator: user.id,
-            users: [{id: user.id, name: user.username, avatarSeed: user.avatarSeed, items:[]}]
-        }).then((docRef) => {
+
+        addSession(user.id, user.username, user.avatarSeed)
+        .then((docRef) => {
             // console.log(docRef.id);
             navigate("/session/" + docRef.id);
             // route to the page
@@ -122,13 +124,13 @@ export default function LandingPage() {
     }
 
     return (
-        <Container maxWidth="xs" sx={{mt:5}}>
+        <Container maxWidth="xs" sx={{mt:2, display:"flex", flexDirection:"column", alignItems:"center"}}>
             {/* <div>LandingPage</div> */}
 
-            <Box sx={{ display: "flex", maxWidth: "xs", justifyContent: "space-between", alignItems: "center" }}>
-                <Avatar style={{ width: '8rem', height: '8rem' }} {...genConfig(avatarSeed)} />
-                <Typography sx={{ textTransform: 'uppercase', mr: 5 }}>{name}</Typography>
-            </Box>
+            <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3 , display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+                <Box sx={{ml:2}}><Avatar style={{ width: '5rem', height: '5rem' }} {...genConfig(avatarSeed)} /></Box>
+                <Typography sx={{ textTransform: 'uppercase', mr: 5, fontSize:18, fontWeight:500 }}>{name}</Typography>
+            </Paper>
 
             {!user ?
                 <Box sx={{mt: 5}}>
@@ -162,7 +164,7 @@ export default function LandingPage() {
 
                 :
                 <>
-                    <Box sx={{backgroundColor:"red", mt:5}}>
+                     <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3 }}>
                         <Button onClick={() => {createSession()}} disabled={creationAttempted}>
                           Create Session
                         </Button>
@@ -180,10 +182,20 @@ export default function LandingPage() {
                           Join Session
                         </Button>
                         </Box>
-                    </Box>
+                    </Paper>
                 </>
             }
-            <ThemeModeSelector></ThemeModeSelector>
+            <SessionTable ></SessionTable>
+            <Box sx={{mt:5, mb:5}}>
+                Lorem ipsum dolor sit amet consectetur, adipisicing elit. Qui tempora consequuntur non illum odit dolor molestias consequatur eligendi, aliquam eius, repudiandae fuga laudantium sunt omnis cum mollitia similique. Debitis, soluta?
+            </Box>
+            <Box>
+                <Divider/>
+                <Box sx={{display:"flex", justifyContent:"space-between"}}>
+                    <Box><Typography>c 2023 Jakub</Typography></Box>
+                    <Box><Typography>Buy me a coffee</Typography></Box>
+                </Box>
+            </Box>
         </Container>
     )
 }

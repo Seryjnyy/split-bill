@@ -1,12 +1,13 @@
 
+import { CssBaseline, createTheme, ThemeProvider  } from '@mui/material';
 import { UserAuthContext } from './UserAuthContext'
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { green } from "@mui/material/colors";
-import { createTheme, ThemeProvider, CssBaseline } from '@mui/material';
 import LandingPage from "./LandingPage"
 import RequireAuth from "./RequireAuth";
 import SessionPage from './SessionPage';
 import {useThemeMode} from "./ThemeModeContext";
+import Navbar from './Navbar';
 
 function App() {
 
@@ -37,7 +38,7 @@ function App() {
       <BrowserRouter>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-
+          <Navbar/>
           <Routes>
             <Route path={"/"} element={<LandingPage></LandingPage>}></Route>
             <Route path={"/session/:id"} element={<RequireAuth redirectTo={"/"}>
