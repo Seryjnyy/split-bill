@@ -4,10 +4,11 @@ import { useAuth } from './UserAuthContext'
 import { Button, Typography, TextField, Container, Box, Paper, Divider } from '@mui/material';
 import uuid from 'react-uuid';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { addSession } from './services/addSession';
 import SessionTable from './SessionTable';
-import { fetchSessionSnapshot } from './services/fetchSessionSnapshot';
-import { fetchSessionsSnapshot } from './services/fetchSessionsSnapshot';
+import Hashids from 'hashids';
+import { db } from '../firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import {addSession} from "./services/addSession"
 
 
 export default function LandingPage() {
@@ -62,6 +63,7 @@ export default function LandingPage() {
     const validateName = (_name) => {
         if (_name.length === 0) {
             setNameError("Need a name boss.");
+            setName("");
             return false;
         }
 
@@ -92,17 +94,30 @@ export default function LandingPage() {
     }
 
     const createSession = () => {
-        setCreationAttempted(true);
+        // setCreationAttempted(true);
+        
 
-        addSession(user.id, user.username, user.avatarSeed)
-        .then((docRef) => {
-            // console.log(docRef.id);
-            navigate("/session/" + docRef.id);
-            // route to the page
-        }).catch((error) => {
-            alert("ERROR" + error)
-            setCreationAttempted(false);
+        const collectionRef = collection(db, 'sessions');
+        const q = query(collectionRef, where("creator", "==", user.id));
+        getDocs(q).then(result => {
+            const hashids = new Hashids(user.id, 8);
+            let joinCode = hashids.encode(result.size);
+
+            addSession(user.id, user.username, user.avatarSeed, joinCode)
+            .then((docRef) => {
+                // console.log(docRef.id);
+                navigate("/session/" + docRef.id);
+                // route to the page
+            }).catch((error) => {
+                alert("ERROR" + error)
+                setCreationAttempted(false);
+            });
         });
+
+
+
+
+
     }
 
     const joinSession = () => {
@@ -126,19 +141,17 @@ export default function LandingPage() {
     return (
         <Container maxWidth="xs" sx={{mt:2, display:"flex", flexDirection:"column", alignItems:"center"}}>
             {/* <div>LandingPage</div> */}
-
-            <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3 , display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+            <Box sx={{marginRight:"auto", ml:3}}><Typography sx={{fontSize:20}}>Welcome,</Typography></Box>
+            <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 1, borderColor: 'divider', borderRadius: 3 , display:"flex", alignItems:"center", justifyContent:"space-between"}}>
                 <Box sx={{ml:2}}><Avatar style={{ width: '5rem', height: '5rem' }} {...genConfig(avatarSeed)} /></Box>
                 <Typography sx={{ textTransform: 'uppercase', mr: 5, fontSize:18, fontWeight:500 }}>{name}</Typography>
             </Paper>
 
             {!user ?
-                <Box sx={{mt: 5}}>
-                    <Typography>First, create a user.</Typography>
-                    <Box sx={{ display: "flex", mt: 1, justifyContent: "space-between", alignItems: "center" }}>
-                        <Button onClick={randomAvatar}>
-                            Random avatar
-                        </Button>
+             <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3, display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center"}}>
+                <Box sx={{mt: 0}}>
+                    <Box sx={{ display: "flex", mt: 1, justifyContent: "center", alignItems: "center" }}>
+
 
 
                         <TextField
@@ -152,22 +165,26 @@ export default function LandingPage() {
                             }}
                         />
 
+                    </Box >
+
+                    <Box sx={{ display: "flex", mt: 2, justifyContent: "center"}} >
+                    <Button onClick={randomAvatar}>
+                            Random avatar
+                        </Button>
                     </Box>
 
-                    <Box sx={{ display: "flex", mt: 5, justifyContent: "center", alignItems: "center" }}>
+                    <Box sx={{ display: "flex", mt: 3, justifyContent: "center", alignItems: "center" }}>
                         <Button onClick={() => { validateAndSave() }}>
                             Save
                         </Button>
                     </Box>
                 </Box>
-
+                </Paper>
 
                 :
                 <>
-                     <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3 }}>
-                        <Button onClick={() => {createSession()}} disabled={creationAttempted}>
-                          Create Session
-                        </Button>
+                     <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3, display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center"}}>
+                        <Box >
                         <Box sx={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
                         <TextField
                                 error={sessionError != ""}
@@ -181,19 +198,36 @@ export default function LandingPage() {
                         <Button onClick={() => joinSession()} disabled={joinAttempted}>
                           Join Session
                         </Button>
+                        </Box> 
+                        <Divider sx={{mt:2}}/>
+                        </Box>
+                        
+
+                        <Box sx={{mt:2}}>
+                        
+                        <Button onClick={() => {createSession()}} disabled={creationAttempted}>
+                          Create Session
+                        </Button>
+
                         </Box>
                     </Paper>
                 </>
             }
-            <SessionTable ></SessionTable>
-            <Box sx={{mt:5, mb:5}}>
+            {user ?  
+                <>
+                                <Box sx={{marginRight:"auto", ml:3, mt:8}}><Typography sx={{fontSize:20}}>Created sessions,</Typography></Box>
+                <Box sx={{mt:1, mb:5}}><SessionTable ></SessionTable></Box>
+                </>
+            : ""}
+            <Box sx={{marginRight:"auto", ml:3, mt:8}}><Typography sx={{fontSize:20}}>About,</Typography></Box>
+            <Box sx={{mt:1, mb:10}}>
                 Lorem ipsum dolor sit amet consectetur, adipisicing elit. Qui tempora consequuntur non illum odit dolor molestias consequatur eligendi, aliquam eius, repudiandae fuga laudantium sunt omnis cum mollitia similique. Debitis, soluta?
             </Box>
             <Box>
                 <Divider/>
                 <Box sx={{display:"flex", justifyContent:"space-between"}}>
-                    <Box><Typography>c 2023 Jakub</Typography></Box>
-                    <Box><Typography>Buy me a coffee</Typography></Box>
+                    <Box sx={{marginRight:"auto"}}><Typography>c 2023 Jakub</Typography></Box>
+                    <Box sx={{ml:12}}><Typography>Buy me a coffee</Typography></Box>
                 </Box>
             </Box>
         </Container>

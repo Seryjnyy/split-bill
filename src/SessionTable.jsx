@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from './UserAuthContext';
 import { fetchSessionsSnapshot } from './services/fetchSessionsSnapshot';
 import { Timestamp } from 'firebase/firestore';
+import { Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 function createData(name, calories, fat, carbs, protein) {
     return { name, calories, fat, carbs, protein };
@@ -18,6 +20,7 @@ function createData(name, calories, fat, carbs, protein) {
 export default function SessionTable() {
   const [sessions, setSessions] = useState([])
   const { user}  = useAuth();
+  let navigate = useNavigate();
     //   console.log("sessionsss")
     //   console.log(sessions)
 
@@ -46,10 +49,14 @@ export default function SessionTable() {
     }, [sessions])
     
     
+    const goToSession = (_sessionID) => {
+      navigate("/session/" + _sessionID);
+    }
 
     return (
-        <TableContainer component={Paper} sx={{mt:2}}>
-          <Table sx={{ minWidth: "xs"}} aria-label="simple table">
+        // <TableContainer component={Paper} sx={{mt:2}}>
+          <Paper version="outlined" sx={{ minWidth: 350}}>
+            <Table sx={{ minWidth: "xs"}} aria-label="simple table">
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
@@ -65,12 +72,13 @@ export default function SessionTable() {
                   {/* <TableCell component="th" scope="row">
                     {_session.created}
                   </TableCell> */}
-                  <TableCell align="right">{_session.id}</TableCell>
-                  <TableCell align="right">{new Date(_session.data.created)}</TableCell>
+                  <TableCell align="left"><Button onClick={() => goToSession(_session.id)}>{_session.id}</Button></TableCell>
+                  <TableCell align="right">{new Date(_session.data.created.seconds * 1000).toLocaleDateString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+          </Paper>
+        // </TableContainer>
       );
 }

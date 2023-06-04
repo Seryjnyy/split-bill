@@ -1,11 +1,10 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Container from '@mui/material/Container'
-import { Typography, TextField, InputAdornment, Button, Card, Paper, Modal, Box, Tab, Switch, FormControlLabel, FormGroup } from "@mui/material";
+import { Typography, TextField, InputAdornment, Button, Paper, Modal, Box, Tab, Switch, FormControlLabel, FormGroup } from "@mui/material";
 import Avatar, { genConfig } from 'react-nice-avatar'
 import { useAuth } from "./UserAuthContext";
 import QrCodeIcon from '@mui/icons-material/QrCode';
-import { Square } from "@mui/icons-material";
 import { Divider } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
 import AddIcon from '@mui/icons-material/Add';
@@ -17,6 +16,9 @@ import { fetchSessionSnapshot } from "./services/fetchSessionSnapshot";
 import { addSessionItem } from "./services/addSessionItem";
 import { addUserToSession } from "./services/addUserToSession";
 import { removeSessionItem } from "./services/removeSessionItem";
+import ShareIcon from '@mui/icons-material/Share';
+import Grid from '@mui/material/Unstable_Grid2';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 export default function SessionPage() {
   const [users, setUsers] = useState({ creator: "", users: [] });
@@ -48,16 +50,20 @@ export default function SessionPage() {
 
   const [modalContent, setModalContent] = useState("");
 
-  const handleOpenModal = (source) => {
-    if (source == "FAB") {
-      setModalContent("FAB")
-    } else if (source == "QR") {
-      setModalContent("QR")
-    }
+  const handleOpenModal = (_source) => {
+    // if (source == "FAB") {
+    //   setModalContent("FAB")
+    // } else if (source == "QR") {
+    //   setModalContent("QR")
+    // }
+    setModalContent(_source)
 
     setOpenModal(true)
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+  }
 
   const sessionItemsSnapshotListener = (_sessionID) => {
     fetchSessionItemsSnapshot(_sessionID, (_querySnapshot) => { setUsersItems(_querySnapshot.docs.map(_doc => ({ id: _doc.id, ..._doc.data() }))); });
@@ -402,6 +408,14 @@ export default function SessionPage() {
             <QRCode value={window.location.href} />
           </Paper>
         </Box>)
+      case "SHARE":
+        return (
+        <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
+          <Box sx={{display: "flex", justifyContent: "center", alignItems:"center", mt:8}}> 
+            Copy link
+            <Button onClick={handleCopyLink}><ContentCopyIcon/></Button>  
+          </Box>
+        </Box>)
 
     }
 
@@ -417,12 +431,27 @@ export default function SessionPage() {
         <Typography sx={{ fontSize: 12 }} align="center">{getPeopleCount()} people | {getItemCount()} items</Typography>
       </Box>
 
-      <Paper variant="outlined" sx={{ width: 350, display: "flex", justifyContent: "center", pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3 }}>
+      <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3 }}>
+        <Grid container spacing={2}>
+          <Grid xs={4}>
+          </Grid>
+          <Grid xs={4}>
+          <Button onClick={() => handleOpenModal("QR")}>
+            <QrCodeIcon />
+            QR Code
+          </Button>
+          </Grid>
+          <Grid xs={4}>
+            <Button onClick={() => handleOpenModal("SHARE")} sx={{ml:5}}>
+              <ShareIcon/>
+            </Button>
+          </Grid>
+        </Grid>
 
-        <Button onClick={() => handleOpenModal("QR")}>
-          <QrCodeIcon />
-          QR Code
-        </Button>
+        
+
+
+
       </Paper>
 
       {users ? users?.users?.map(_user => (
