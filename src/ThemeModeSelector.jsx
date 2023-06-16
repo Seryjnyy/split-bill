@@ -7,7 +7,7 @@ export default function ThemeModeSelector(){
     const {mode, setMode} = useThemeMode(null);
 
     return (
-        <IconButton sx={{ ml: 1 }} onClick={() => setMode(mode === "dark" ? "light" : "dark")} color="inherit">
+        <IconButton onClick={() => setMode(mode === "dark" ? "light" : "dark")} color="inherit">
             {mode === 'dark' ? <Brightness7Rounded /> : <Brightness4Rounded />}
         </IconButton>
     );

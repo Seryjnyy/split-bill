@@ -2,6 +2,7 @@ import { AppBar, Box, Button, Container, IconButton, Menu, MenuItem, Toolbar, To
 import MenuIcon from '@mui/icons-material/Menu';
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ThemeModeSelector from "./ThemeModeSelector";
 
 export default function ResponsiveAppBar() {
     const [anchorElUser, setAnchorElUser] = useState(null);
@@ -62,6 +63,10 @@ export default function ResponsiveAppBar() {
                     <Typography textAlign="center">{setting}</Typography>
                   </MenuItem>
                 ))}
+                <Box sx={{width:"100%", display:"flex", justifyContent:"center"}}>
+                  <ThemeModeSelector/>
+
+                </Box>
               </Menu>
             </Box>
         </Container>

@@ -9,6 +9,7 @@ import Hashids from 'hashids';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import {addSession} from "./services/addSession"
+import { fetchSessionWithKeyCode } from './services/fetchSessionWithKeyCode';
 
 
 export default function LandingPage() {
@@ -124,11 +125,22 @@ export default function LandingPage() {
         if(!validateSession(session))
             return;
 
-        setJoinAttempted(true);
+        // setJoinAttempted(true);
+
+        fetchSessionWithKeyCode(session).then(result => {
+            if(result.empty)
+                console.log("key code invalid")
+
+            if(result.size > 1)
+                console.log("internal error, keycode maps to multiple sessions, sorry :/")
+
+            navigate("/session/" + result.docs[0].id); 
+            console.log(result)
+        }).catch(err => alert(err));
 
         // fetch doc here
         // pass into
-        navigate("/session/" + session);
+        // navigate("/session/" + session);
     }
 
     const validateAndSave = () => {
@@ -189,7 +201,7 @@ export default function LandingPage() {
                         <TextField
                                 error={sessionError != ""}
                                 id="outlined-error-helper-text"
-                                label="Session"
+                                label="Join Code"
                                 helperText={sessionError != "" ? sessionError : ""}
                                 onChange={(e) => {
                                     validateSession(e.target.value);

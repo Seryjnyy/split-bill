@@ -19,12 +19,35 @@ import { removeSessionItem } from "./services/removeSessionItem";
 import ShareIcon from '@mui/icons-material/Share';
 import Grid from '@mui/material/Unstable_Grid2';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LabelSelect from "./LabelSelect";
+import AddPerson from "./AddPerson";
 
 export default function SessionPage() {
   const [users, setUsers] = useState({ creator: "", users: [] });
   const [usersItems, setUsersItems] = useState([])
   const { id } = useParams();
   const { user } = useAuth();
+
+  // Selected user to inspect
+
+  const [userToInspect, setUserToInspect] = useState("");
+
+  // Discount
+
+  const [discountName, setDiscountName] = useState("");
+  const [discountNameError, setDiscountNameError] = useState("");
+
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountAmountError, setDiscountAmountError] = useState("")
+
+  const [discountTags, setDiscountTags] = useState([]);
+  const [discountTagsError, setDiscountTagsError] = useState("")
+
+  // Tags
+
+  const [tags, setTags] = useState([]);
+  const [availableTags, setAvailableTags] = useState(["Food", "Drink"])
+  const [itemTagsError, setItemTagsError] = useState("")
 
   // Item
   const [itemName, setItemName] = useState("");
@@ -65,27 +88,23 @@ export default function SessionPage() {
     navigator.clipboard.writeText(window.location.href);
   }
 
+  const handleCopyJoinCode = () => {
+    navigator.clipboard.writeText(users.joinCode);
+  }
+
   const sessionItemsSnapshotListener = (_sessionID) => {
     fetchSessionItemsSnapshot(_sessionID, (_querySnapshot) => { setUsersItems(_querySnapshot.docs.map(_doc => ({ id: _doc.id, ..._doc.data() }))); });
   }
   const sessionSnapshotListener = (_sessionID) => {
     fetchSessionSnapshot(_sessionID, (_querySnapshot) => {
 
+      // TODO : need changing the name users to session, since its more than just the users at this point
       setUsers({
-        creator: _querySnapshot.data().creator, users: _querySnapshot.data().users.map(_user => {
-          // calculate item count, total price
-          var userItemCountTemp = 0
-          var userTotalPriceTemp = 0
-
-          usersItems.forEach(_item => {
-            if (_item.userID == _user.id) {
-              userItemCountTemp = _item.quantity;
-              userTotalPriceTemp = _item.price * _item.quantity;
-            }
-          })
-
-          return { ..._user, additional: { itemCount: userItemCountTemp, totalPrice: userTotalPriceTemp } }
-        })
+        creator: _querySnapshot.data().creator,
+        users: _querySnapshot.data().users.map(_user => {
+          return { ..._user }
+        }),
+        joinCode: _querySnapshot.data().joinCode
       });
 
     })
@@ -115,7 +134,12 @@ export default function SessionPage() {
     sessionSnapshotListener(id);
   }, []);
 
-  // Item
+  const handleInspectUser = (_userID) => {
+    setUserToInspect(_userID);
+    handleOpenModal("USER");
+  }
+
+  //#region Item
 
   const validateItemName = (_itemName) => {
     if (_itemName.length <= 0) {
@@ -148,7 +172,7 @@ export default function SessionPage() {
   const validateItemAmount = (_itemAmount) => {
     if (_itemAmount < 1) {
       setItemAmountError("Can't be 0 or less.");
-      setItemAmount(_itemAmount);
+      setItemAmount(0);
       return false;
     }
 
@@ -157,27 +181,57 @@ export default function SessionPage() {
     return true;
   }
 
+  const validateItemTags = () => {
+    if (tags.length == 0) {
+      setItemTagsError("Need a tag.");
+      return false;
+    }
+
+    if (tags.length > 1) {
+      setItemTagsError("Too many tags.");
+      return false;
+    }
+
+    setItemTagsError("");
+    return true;
+  }
+
   const validateItemAndSave = () => {
-    if (!validateItemName(itemName))
+    let valid = true;
+
+    if (!validateItemName(itemName)) {
+      valid = false;
+    }
+
+    if (!validateItemPrice(itemPrice)) {
+      valid = false;
+    }
+
+    if (!validateItemAmount(itemAmount)) {
+      valid = false;
+    }
+
+    if (!validateItemTags(tags)) {
+      valid = false;
+    }
+
+    if (!valid) {
       return;
+    }
 
-    if (!validateItemPrice(itemPrice))
-      return;
-
-    if (!validateItemAmount(itemAmount))
-      return;
-
-
-    addSessionItem(user.id, id, itemName, itemAmount, itemPrice).catch(e => alert(e));
+    addSessionItem(user.id, id, itemName, itemAmount, itemPrice, tags.map(tag => tag.value)).catch(e => alert(e));
 
     setItemAmount(1);
     setItemName("");
     setItemPrice(0);
+    setTags([]);
 
     setOpenModal(false);
   }
 
-  // Charge
+  //#endregion Item
+
+  //#region Charge
 
   const validateChargeName = (_chargeName) => {
     if (_chargeName.length <= 0) {
@@ -208,23 +262,24 @@ export default function SessionPage() {
   }
 
   const validateChargeAndSave = () => {
-    if(!validateChargeName(chargeName))
+    if (!validateChargeName(chargeName))
       return;
 
-    if(!validateChargePrice(chargePrice))
+    if (!validateChargePrice(chargePrice))
       return;
 
 
-      // if split between calculate new price of charge
-      var newPrice = forEveryone ? chargePrice / users.users.length : chargePrice;
 
-      users.users.forEach(_user => {
-        if ((_user.id == user.id) || forEveryone) {
-          addSessionItem(_user.id, id, chargeName, 1, newPrice).catch(e => alert(e));
-        }
+    // if split between calculate new price of charge
+    var newPrice = forEveryone ? chargePrice / users.users.length : chargePrice;
 
-      })
-  
+    users.users.forEach(_user => {
+      if ((_user.id == user.id) || forEveryone) {
+        addSessionItem(_user.id, id, chargeName, 1, newPrice, ["Charge"]).catch(e => alert(e));
+      }
+
+    })
+
 
     setChargeName("");
     setChargePrice(0);
@@ -232,7 +287,9 @@ export default function SessionPage() {
     setOpenModal(false);
   }
 
+  //#endregion Charge
 
+  //#region get stuff 
 
   const getItemCount = () => {
     var itemCountTemp = 0;
@@ -280,6 +337,8 @@ export default function SessionPage() {
     return totalPriceTemp;
   }
 
+  // #endregion
+
   const removeItem = (_itemID) => {
     // TODO : could have check to ensure item belongs to the user
     removeSessionItem(_itemID);
@@ -293,12 +352,88 @@ export default function SessionPage() {
   const [forEveryone, setForEveryone] = useState(false);
 
 
+  //#region Discount
+
+  const validateDiscountName = (_discountName) => {
+    if (_discountName.length <= 0) {
+      setDiscountNameError("Need a name.");
+      setDiscountName("");
+      return false;
+    }
+
+    if (_discountName.length > 20) {
+      setDiscountNameError("Too long.");
+      return false;
+    }
+
+    setDiscountNameError("");
+    setDiscountName(_discountName);
+    return true;
+  }
+
+  const validateDiscountAmount = (_discountAmount) => {
+    if (_discountAmount < 1) {
+      setDiscountAmountError("Can't be 0 or less.");
+      setDiscountAmount(0);
+      return false;
+    }
+
+    setDiscountAmountError("");
+    setDiscountAmount(_discountAmount);
+    return true;
+  }
+
+  const validateDiscountTags = (_discountTags) => {
+    if (_discountTags.length == 0) {
+      setDiscountTagsError("Need a tag.");
+      return false;
+    }
+
+    if (_discountTags.length > 1) {
+      setDiscountTagsError("Too many tags.");
+      return false;
+    }
+
+    setDiscountTagsError("");
+    return true;
+  }
+
+  const validateDiscountAndSave = () => {
+    let valid = true;
+    
+    if(!validateDiscountName(discountName)){
+      valid = false;
+    }
+
+    if(!validateDiscountAmount(discountAmount)){
+      valid = false;
+    }
+
+    if(!validateDiscountTags(discountTags)){
+      valid = false;
+    }
+
+    if(!valid){
+      return;
+    }
+
+    setDiscountName("");
+    setDiscountAmount("");
+    setDiscountTags([]);
+
+    setOpenModal(false)
+  }
+
+  //#endregion Discount
+
   const modalFABContent = () => {
     return <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
       <TabContext value={value}>
         <TabList onChange={handleChange}>
-          <Tab label="Add item" value='1' />
-          <Tab label="Add charge" value='2' />
+          <Tab label="item" value='1' />
+          <Tab label="charge" value='2' />
+          <Tab label="person" value='3' />
+          <Tab label="discount" value='4' />
         </TabList>
         <TabPanel value='1'>
           <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
@@ -346,6 +481,20 @@ export default function SessionPage() {
               }}
             />
 
+            <Box sx={{ width: "100%", mt: 3 }}>
+              <LabelSelect
+                value={tags}
+                setValue={setTags}
+                availableTags={availableTags.map((tag) => ({
+                  value: tag,
+                  name: tag,
+                  createdNow: false,
+                }))}
+                inputErrorMessage={itemTagsError}
+                maxSelect={1}
+              />
+            </Box>
+
             <Button onClick={() => validateItemAndSave()} sx={{ mt: 1 }}>
               Add
             </Button>
@@ -369,7 +518,7 @@ export default function SessionPage() {
             />
 
             <TextField
-              sx={{ mt: 3, mb:3 ,width: 200 }}
+              sx={{ mt: 3, mb: 3, width: 200 }}
               error={chargePriceError != ""}
               id="outlined-error-helper-text"
               label="Price"
@@ -386,12 +535,63 @@ export default function SessionPage() {
             />
 
             <FormGroup>
-              <FormControlLabel control={<Switch checked={forEveryone} onClick={() => setForEveryone(!forEveryone)}/>} label="Split between everyone" />
+              <FormControlLabel control={<Switch checked={forEveryone} onClick={() => setForEveryone(!forEveryone)} />} label="Split between everyone" />
             </FormGroup>
 
             <Button onClick={() => validateChargeAndSave()} sx={{ mt: 1 }}>
               Add
             </Button>
+          </Box>
+        </TabPanel>
+        <TabPanel value='3'>
+          <AddPerson sessionID={id} onSuccess={() => setOpenModal(false)} />
+        </TabPanel>
+        <TabPanel value='4'>
+          <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
+            <TextField
+              sx={{ width: 200 }}
+              error={discountNameError != ""}
+              id="outlined-error-helper-text"
+              label="Name"
+              value={discountName}
+              helperText={discountNameError != "" ? discountNameError : ""}
+              onChange={(e) => {
+                validateChargeName(e.target.value);
+              }}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              sx={{ mt: 3, width: 200 }}
+              error={itemAmountError != ""}
+              id="outlined-error-helper-text"
+              label="Amount"
+              type="number"
+              value={itemAmount}
+              helperText={itemAmountError != "" ? itemAmountError : ""}
+              onChange={(e) => {
+                validateItemAmount(e.target.value);
+              }}
+            />
+
+            <Box sx={{ width: "100%", mt: 3 }}>
+              <LabelSelect
+                value={discountTags}
+                setValue={setDiscountTags}
+                availableTags={availableTags.map((tag) => ({
+                  value: tag,
+                  name: tag,
+                  createdNow: false,
+                }))}
+                inputErrorMessage={discountTagsError}
+                maxSelect={2}
+              />
+            </Box>
+
+            <Button onClick={() => validateDiscountAndSave()} sx={{ mt: 1 }}>
+              Add
+            </Button>
+
           </Box>
         </TabPanel>
       </TabContext>
@@ -410,25 +610,76 @@ export default function SessionPage() {
         </Box>)
       case "SHARE":
         return (
-        <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
-          <Box sx={{display: "flex", justifyContent: "center", alignItems:"center", mt:8}}> 
-            Copy link
-            <Button onClick={handleCopyLink}><ContentCopyIcon/></Button>  
+          <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", mt: 8 }}>
+              Copy link
+              <Button onClick={handleCopyLink}><ContentCopyIcon /></Button>
+            </Box>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", mt: 6 }}>
+              {users.joinCode}
+              <Button onClick={handleCopyJoinCode}><ContentCopyIcon /></Button>
+            </Box>
+          </Box>)
+      case "USER":
+        var userInspect = users.users.find(_user => _user.id == userToInspect);
+        var creatorOfUser = [];
+        if(userInspect?.creator != ""){
+          creatorOfUser = users.users.find(_user => _user.id == userInspect.creator);
+        }
+        
+
+        return(
+          <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
+          <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3, display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
+           <Box sx={{display:"flex", alignItems:"center", justifyContent:"space-evenly", width:"100%"}}>
+              <Avatar style={{ width: '3rem', height: '3rem' }} {...genConfig(userInspect.avatarSeed)} />
+              <Typography>{userInspect.name}{userInspect.id == user.id ? " (YOU)" : ""}</Typography>
+
+              
+           </Box>
+           {userInspect.creator != "" ? 
+           <Box>
+              Added manually by
+              <Box sx={{display:"flex", alignItems:"center"}}>
+              <Avatar style={{ width: '2rem', height: '2rem' }} {...genConfig(creatorOfUser.avatarSeed)} />
+              <Typography sx={{ml:1}}>{creatorOfUser.name}</Typography>
+                </Box>
+              <Typography>on {new Date(userInspect.joined.seconds * 1000).toLocaleString()}</Typography>
+           </Box> : 
+           <Box>
+              Joined on {new Date(userInspect.joined.seconds * 1000).toLocaleString()}
+           </Box>
+           }
+
+           {userInspect.id == users.creator ? 
+           <Box>
+              <Typography>The creator of this session.</Typography>
+           </Box> 
+           : ""}
+
+           {userInspect?.creator == user.id ? 
+           <Button>Remove</Button>
+            : "can't"}
+          </Paper>
           </Box>
-        </Box>)
+        )
+
 
     }
 
   }
 
   return (
-    <Container maxWidth="xs" sx={{ display: "flex", alignItems: "center", flexDirection: "column" }}>
+    <Container maxWidth="xs" sx={{ display: "flex", alignItems: "center", flexDirection: "column", pb: 15 }}>
       {/* <div>SessionPage {id}</div> */}
 
 
-      <Box>
+      <Box sx={{display:"flex", flexDirection:"column", alignItems:"center"}}>
         <Typography sx={{ fontSize: 40, mt: 8 }}>{getTotalPrice().toLocaleString("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2 })}</Typography>
         <Typography sx={{ fontSize: 12 }} align="center">{getPeopleCount()} people | {getItemCount()} items</Typography>
+        <Box sx={{mt:1}}>
+          <Typography sx={{fontSize: 11}}>-20% Drink Student</Typography>
+        </Box>
       </Box>
 
       <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3 }}>
@@ -436,19 +687,19 @@ export default function SessionPage() {
           <Grid xs={4}>
           </Grid>
           <Grid xs={4}>
-          <Button onClick={() => handleOpenModal("QR")}>
-            <QrCodeIcon />
-            QR Code
-          </Button>
+            <Button onClick={() => handleOpenModal("QR")}>
+              <QrCodeIcon />
+              QR Code
+            </Button>
           </Grid>
           <Grid xs={4}>
-            <Button onClick={() => handleOpenModal("SHARE")} sx={{ml:5}}>
-              <ShareIcon/>
+            <Button onClick={() => handleOpenModal("SHARE")} sx={{ ml: 5 }}>
+              <ShareIcon />
             </Button>
           </Grid>
         </Grid>
 
-        
+
 
 
 
@@ -459,7 +710,7 @@ export default function SessionPage() {
           <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3 }}>
             <Box sx={{ display: "flex", maxWidth: "xs", justifyContent: "space-between", alignItems: "center" }}>
               <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
-                <Avatar style={{ width: '3rem', height: '3rem' }} {...genConfig(_user.avatarSeed)} />
+                <Box onClick={() => handleInspectUser(_user.id)}><Avatar style={{ width: '3rem', height: '3rem' }} {...genConfig(_user.avatarSeed)} /></Box>
                 <Typography sx={{ textTransform: 'uppercase', ml: 2 }}>{_user.name} </Typography>
 
               </Box>
@@ -478,10 +729,16 @@ export default function SessionPage() {
               {
                 usersItems.map((_item, _index) => {
                   if (_item.userID == _user.id) {
-
                     return <Box sx={{ display: "flex", justifyContent: "space-between" }} key={_user.id + _index}>
                       <Box sx={{ ml: 3 }}>
-                        <Typography sx={{ fontSize: 20 }}>{_item.name}</Typography>
+
+
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <Typography sx={{ fontSize: 20, mr: 0.5 }}>{_item.name}</Typography>
+                          {_item.tags.map((tag, _indexTag) => {
+                            return <Typography sx={{ fontSize: 9, mt: 0.2 }} key={_indexTag}>({tag})</Typography>
+                          })}
+                        </Box>
                         <Box sx={{ display: "flex" }}>
                           <Typography sx={{ fontSize: 10 }}>x {_item.quantity}</Typography>
                           <Typography sx={{ fontSize: 10, ml: 2 }}>{_item.price.toLocaleString("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2 })}</Typography>
@@ -524,7 +781,7 @@ export default function SessionPage() {
           left: '50%',
           transform: 'translate(-50%, -50%)',
         }}>
-          <Paper sx={{ height: 370, width: { xs: "98vw", md: 400 } }}>
+          <Paper sx={{ height: 450, width: { xs: "98vw", md: 400 } }}>
 
 
 
