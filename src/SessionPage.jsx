@@ -21,6 +21,7 @@ import Grid from '@mui/material/Unstable_Grid2';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LabelSelect from "./LabelSelect";
 import AddPerson from "./AddPerson";
+import { motion } from "framer-motion";
 
 export default function SessionPage() {
   const [users, setUsers] = useState({ creator: "", users: [] });
@@ -610,7 +611,7 @@ export default function SessionPage() {
         </Box>)
       case "SHARE":
         return (
-          <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
+          <Box sx={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center"}}>
             <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", mt: 8 }}>
               Copy link
               <Button onClick={handleCopyLink}><ContentCopyIcon /></Button>
@@ -669,6 +670,28 @@ export default function SessionPage() {
 
   }
 
+  const dropIn = {
+    hidden:{
+      y:'-100vh',
+      opacity:0,
+    },
+    visible:{
+      y: "0",
+      opacity:1,
+      transition:{
+        duration:0.1,
+        type:"spring",
+        damping:25,
+        stiffness:500
+      }
+
+    },
+    exit:{
+      y:'100vh',
+      opacity:0
+    }
+  }
+
   return (
     <Container maxWidth="xs" sx={{ display: "flex", alignItems: "center", flexDirection: "column", pb: 15 }}>
       {/* <div>SessionPage {id}</div> */}
@@ -710,7 +733,9 @@ export default function SessionPage() {
           <Paper variant="outlined" sx={{ width: 350, pt: 1, pb: 1, mt: 3, borderColor: 'divider', borderRadius: 3 }}>
             <Box sx={{ display: "flex", maxWidth: "xs", justifyContent: "space-between", alignItems: "center" }}>
               <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
-                <Box onClick={() => handleInspectUser(_user.id)}><Avatar style={{ width: '3rem', height: '3rem' }} {...genConfig(_user.avatarSeed)} /></Box>
+                <Box onClick={() => handleInspectUser(_user.id)} component={motion.div} whileTap={{ scale: 0.9 }}>
+                  <Avatar style={{ width: '3rem', height: '3rem' }} {...genConfig(_user.avatarSeed)} />
+                </Box>
                 <Typography sx={{ textTransform: 'uppercase', ml: 2 }}>{_user.name} </Typography>
 
               </Box>
@@ -781,7 +806,7 @@ export default function SessionPage() {
           left: '50%',
           transform: 'translate(-50%, -50%)',
         }}>
-          <Paper sx={{ height: 450, width: { xs: "98vw", md: 400 } }}>
+          <Paper sx={{ height: 450, width: { xs: "98vw", md: 400 } }} component={motion.div} variants={dropIn} initial="hidden" animate="visible">
 
 
 
