@@ -6,7 +6,7 @@ export function UserAuthContext({children}) {
     const [user, setUser] = useState(null);
 
     useEffect(() => {
-        setUser(JSON.parse(localStorage.getItem("user")));
+        setUser(JSON.parse(localStorage.getItem("split-bill:user")));
 
         // if (user == null) {
         //   console.log("UserAuthContext::no user")
@@ -17,7 +17,7 @@ export function UserAuthContext({children}) {
         //   config = genConfig("" + userID);
         // }
         const unsubscribe = () => {
-            setUser(JSON.parse(localStorage.getItem("user")));
+            setUser(JSON.parse(localStorage.getItem("split-bill:user")));
         }
 
         // return a function that will call unsubscribe
@@ -29,8 +29,8 @@ export function UserAuthContext({children}) {
     }, [])
     
     const register = (uuid, username, avatarSeed) => {
-        localStorage.setItem("user", JSON.stringify({id:uuid, username: username, avatarSeed: avatarSeed}));
-        setUser(JSON.parse(localStorage.getItem("user")));
+        localStorage.setItem("split-bill:user", JSON.stringify({id:uuid, username: username, avatarSeed: avatarSeed}));
+        setUser(JSON.parse(localStorage.getItem("split-bill:user")));
     }
 
 

@@ -1,17 +1,15 @@
-
-import { CssBaseline, createTheme, ThemeProvider  } from '@mui/material';
-import { UserAuthContext } from './UserAuthContext'
+import { CssBaseline, createTheme, ThemeProvider } from "@mui/material";
+import { UserAuthContext } from "./UserAuthContext";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { green } from "@mui/material/colors";
-import LandingPage from "./LandingPage"
+import LandingPage from "./Landing/LandingPage";
 import RequireAuth from "./RequireAuth";
-import SessionPage from './SessionPage';
-import {useThemeMode} from "./ThemeModeContext";
-import Navbar from './Navbar';
+import SessionPage from "./Session/SessionPage";
+import { useThemeMode } from "./ThemeModeContext";
+import Navbar from "./Navbar";
 
 function App() {
-
-  let {mode} = useThemeMode();
+  let { mode } = useThemeMode();
 
   const theme = createTheme({
     spacing: 8,
@@ -20,35 +18,39 @@ function App() {
       customGreen: {
         main: green[300],
         dark: green[800],
-        light: green[200]
-      }
+        light: green[200],
+      },
     },
-    typography:{
-      "fontFamily": `"Roboto", "Helvetica", "Arial", sans-serif`,
-      "fontSize": 14,
-      "fontWeightLight": 300,
-      "fontWeightRegular": 400,
-      "fontWeightMedium": 500
+    typography: {
+      fontFamily: `"Roboto", "Helvetica", "Arial", sans-serif`,
+      fontSize: 14,
+      fontWeightLight: 300,
+      fontWeightRegular: 400,
+      fontWeightMedium: 500,
     },
-
-  })
+  });
 
   return (
     <UserAuthContext>
       <BrowserRouter>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <Navbar/>
+          <Navbar />
           <Routes>
             <Route path={"/"} element={<LandingPage></LandingPage>}></Route>
-            <Route path={"/session/:id"} element={<RequireAuth redirectTo={"/"}>
-              <SessionPage></SessionPage>
-            </RequireAuth>}></Route>
+            <Route
+              path={"/session/:id"}
+              element={
+                <RequireAuth redirectTo={"/"}>
+                  <SessionPage></SessionPage>
+                </RequireAuth>
+              }
+            ></Route>
           </Routes>
         </ThemeProvider>
       </BrowserRouter>
     </UserAuthContext>
-  )
+  );
 }
 
-export default App
+export default App;
